@@ -1,0 +1,7 @@
+data/raw/
+data/clean/
+*.zip
+*.pbix
+**/.pbi/
+__pycache__/
+.venv/

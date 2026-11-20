@@ -1,0 +1,36 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/report/3.0.0/schema.json",
+  "themeCollection": {
+    "baseTheme": {
+      "name": "CY24SU02",
+      "reportVersionAtImport": {
+        "report": "3.0.0",
+        "page": "2.0.0",
+        "visual": "2.0.0"
+      },
+      "type": "SharedResources"
+    },
+    "customTheme": {
+      "name": "Olist",
+      "reportVersionAtImport": {
+        "report": "3.0.0",
+        "page": "2.0.0",
+        "visual": "2.0.0"
+      },
+      "type": "RegisteredResources"
+    }
+  },
+  "resourcePackages": [
+    {
+      "name": "Olist",
+      "type": "RegisteredResources",
+      "items": [
+        {
+          "name": "Olist",
+          "path": "Olist.json",
+          "type": "CustomTheme"
+        }
+      ]
+    }
+  ]
+}

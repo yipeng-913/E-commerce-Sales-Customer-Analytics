@@ -1,0 +1,420 @@
+{
+  "name": "Olist",
+  "compatibilityLevel": 1600,
+  "model": {
+    "culture": "en-US",
+    "defaultPowerBIDataSourceVersion": "powerBI_V3",
+    "sourceQueryCulture": "en-US",
+    "tables": [
+      {
+        "name": "Orders",
+        "columns": [
+          {
+            "name": "order_id",
+            "dataType": "string",
+            "sourceColumn": "order_id",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "customer_id",
+            "dataType": "string",
+            "sourceColumn": "customer_id",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "customer_unique_id",
+            "dataType": "string",
+            "sourceColumn": "customer_unique_id",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "customer_state",
+            "dataType": "string",
+            "sourceColumn": "customer_state",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "order_status",
+            "dataType": "string",
+            "sourceColumn": "order_status",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "purchase_date",
+            "dataType": "dateTime",
+            "sourceColumn": "purchase_date",
+            "summarizeBy": "none",
+            "formatString": "yyyy-mm-dd"
+          },
+          {
+            "name": "delivery_days",
+            "dataType": "int64",
+            "sourceColumn": "delivery_days",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "delivery_band",
+            "dataType": "string",
+            "sourceColumn": "delivery_band",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "review_score",
+            "dataType": "int64",
+            "sourceColumn": "review_score",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "Purchase Month",
+            "type": "calculated",
+            "dataType": "string",
+            "summarizeBy": "none",
+            "expression": "FORMAT(Orders[purchase_date], \"yyyy-MM\")"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Orders",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = Csv.Document(File.Contents(DataFolder & \"orders.csv\"), [Delimiter=\",\", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),",
+                "    Headers = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),",
+                "    Typed = Table.TransformColumnTypes(Headers, {{\"order_id\", type text}, {\"customer_id\", type text}, {\"customer_unique_id\", type text}, {\"customer_state\", type text}, {\"order_status\", type text}, {\"purchase_date\", type date}, {\"delivery_days\", Int64.Type}, {\"delivery_band\", type text}, {\"review_score\", Int64.Type}}, \"en-US\")",
+                "in",
+                "    Typed"
+              ]
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "Revenue",
+            "expression": "CALCULATE(SUM(Items[price]), Orders[order_status] = \"delivered\")",
+            "formatString": "\"R$ \" #,0.00"
+          },
+          {
+            "name": "Order Count",
+            "expression": "CALCULATE(COUNTROWS(Orders), Orders[order_status] = \"delivered\")",
+            "formatString": "#,0"
+          },
+          {
+            "name": "All Orders",
+            "expression": "COUNTROWS(Orders)",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Average Order Value",
+            "expression": "DIVIDE([Revenue], [Order Count])",
+            "formatString": "\"R$ \" #,0.00"
+          },
+          {
+            "name": "Customers",
+            "expression": "CALCULATE(DISTINCTCOUNT(Orders[customer_unique_id]), Orders[order_status] = \"delivered\")",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Repeat Customers",
+            "expression": "COUNTROWS(FILTER(VALUES(Orders[customer_unique_id]), [Order Count] >= 2)) + 0",
+            "formatString": "#,0"
+          },
+          {
+            "name": "One-time Customers",
+            "expression": "[Customers] - [Repeat Customers]",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Repeat Purchase Rate",
+            "expression": "DIVIDE([Repeat Customers], [Customers])",
+            "formatString": "0.0%"
+          },
+          {
+            "name": "Rated Order Count",
+            "expression": "CALCULATE(COUNT(Orders[review_score]), Orders[order_status] = \"delivered\")",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Average Review Score",
+            "expression": "CALCULATE(AVERAGE(Orders[review_score]), Orders[order_status] = \"delivered\")",
+            "formatString": "0.00"
+          },
+          {
+            "name": "Comparable Review Score",
+            "expression": "CALCULATE([Average Review Score], KEEPFILTERS(Orders[delivery_band] IN {\"Late\", \"On time\"}))",
+            "formatString": "0.00"
+          },
+          {
+            "name": "Average Delivery Days",
+            "expression": "AVERAGE(Orders[delivery_days])",
+            "formatString": "0.0"
+          },
+          {
+            "name": "Late Orders",
+            "expression": "CALCULATE(COUNTROWS(Orders), KEEPFILTERS(Orders[delivery_band] = \"Late\"))",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Comparable Orders",
+            "expression": "CALCULATE(COUNTROWS(Orders), KEEPFILTERS(Orders[delivery_band] IN {\"Late\", \"On time\"}))",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Late Delivery Rate",
+            "expression": "DIVIDE([Late Orders], [Comparable Orders])",
+            "formatString": "0.0%"
+          },
+          {
+            "name": "Item Count",
+            "expression": "CALCULATE(COUNTROWS(Items), Orders[order_status] = \"delivered\")",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Merchandise Orders",
+            "expression": "CALCULATE(DISTINCTCOUNT(Items[order_id]), Orders[order_status] = \"delivered\")",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Average Item Price",
+            "expression": "DIVIDE([Revenue], [Item Count])",
+            "formatString": "\"R$ \" #,0.00"
+          },
+          {
+            "name": "Revenue Share",
+            "expression": "DIVIDE([Revenue], CALCULATE([Revenue], REMOVEFILTERS(Products[category])))",
+            "formatString": "0.0%"
+          },
+          {
+            "name": "Paid Amount",
+            "expression": "CALCULATE(SUM(Payments[payment_value]), Orders[order_status] = \"delivered\")",
+            "formatString": "\"R$ \" #,0.00"
+          },
+          {
+            "name": "Category Rank",
+            "expression": "IF(NOT ISBLANK([Revenue]), RANKX(ALLSELECTED(Products[category]), [Revenue], , DESC, DENSE))",
+            "formatString": "0"
+          },
+          {
+            "name": "Top 10 Category Revenue",
+            "expression": "IF([Category Rank] <= 10, [Revenue])",
+            "formatString": "\"R$ \" #,0.00"
+          }
+        ]
+      },
+      {
+        "name": "Items",
+        "columns": [
+          {
+            "name": "order_id",
+            "dataType": "string",
+            "sourceColumn": "order_id",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "order_item_id",
+            "dataType": "int64",
+            "sourceColumn": "order_item_id",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "product_id",
+            "dataType": "string",
+            "sourceColumn": "product_id",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "seller_id",
+            "dataType": "string",
+            "sourceColumn": "seller_id",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "price",
+            "dataType": "decimal",
+            "sourceColumn": "price",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "freight_value",
+            "dataType": "decimal",
+            "sourceColumn": "freight_value",
+            "summarizeBy": "none"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Items",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = Csv.Document(File.Contents(DataFolder & \"items.csv\"), [Delimiter=\",\", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),",
+                "    Headers = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),",
+                "    Typed = Table.TransformColumnTypes(Headers, {{\"order_id\", type text}, {\"order_item_id\", Int64.Type}, {\"product_id\", type text}, {\"seller_id\", type text}, {\"price\", Currency.Type}, {\"freight_value\", Currency.Type}}, \"en-US\")",
+                "in",
+                "    Typed"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Payments",
+        "columns": [
+          {
+            "name": "order_id",
+            "dataType": "string",
+            "sourceColumn": "order_id",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "payment_sequential",
+            "dataType": "int64",
+            "sourceColumn": "payment_sequential",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "payment_type",
+            "dataType": "string",
+            "sourceColumn": "payment_type",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "payment_value",
+            "dataType": "decimal",
+            "sourceColumn": "payment_value",
+            "summarizeBy": "none"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Payments",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = Csv.Document(File.Contents(DataFolder & \"payments.csv\"), [Delimiter=\",\", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),",
+                "    Headers = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),",
+                "    Typed = Table.TransformColumnTypes(Headers, {{\"order_id\", type text}, {\"payment_sequential\", Int64.Type}, {\"payment_type\", type text}, {\"payment_value\", Currency.Type}}, \"en-US\")",
+                "in",
+                "    Typed"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Products",
+        "columns": [
+          {
+            "name": "product_id",
+            "dataType": "string",
+            "sourceColumn": "product_id",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "category",
+            "dataType": "string",
+            "sourceColumn": "category",
+            "summarizeBy": "none"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Products",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = Csv.Document(File.Contents(DataFolder & \"products.csv\"), [Delimiter=\",\", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),",
+                "    Headers = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),",
+                "    Typed = Table.TransformColumnTypes(Headers, {{\"product_id\", type text}, {\"category\", type text}}, \"en-US\")",
+                "in",
+                "    Typed"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Sellers",
+        "columns": [
+          {
+            "name": "seller_id",
+            "dataType": "string",
+            "sourceColumn": "seller_id",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "seller_state",
+            "dataType": "string",
+            "sourceColumn": "seller_state",
+            "summarizeBy": "none"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Sellers",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = Csv.Document(File.Contents(DataFolder & \"sellers.csv\"), [Delimiter=\",\", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),",
+                "    Headers = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),",
+                "    Typed = Table.TransformColumnTypes(Headers, {{\"seller_id\", type text}, {\"seller_state\", type text}}, \"en-US\")",
+                "in",
+                "    Typed"
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "name": "Items_Orders",
+        "fromTable": "Items",
+        "fromColumn": "order_id",
+        "toTable": "Orders",
+        "toColumn": "order_id",
+        "crossFilteringBehavior": "oneDirection"
+      },
+      {
+        "name": "Payments_Orders",
+        "fromTable": "Payments",
+        "fromColumn": "order_id",
+        "toTable": "Orders",
+        "toColumn": "order_id",
+        "crossFilteringBehavior": "oneDirection"
+      },
+      {
+        "name": "Items_Products",
+        "fromTable": "Items",
+        "fromColumn": "product_id",
+        "toTable": "Products",
+        "toColumn": "product_id",
+        "crossFilteringBehavior": "oneDirection"
+      },
+      {
+        "name": "Items_Sellers",
+        "fromTable": "Items",
+        "fromColumn": "seller_id",
+        "toTable": "Sellers",
+        "toColumn": "seller_id",
+        "crossFilteringBehavior": "oneDirection"
+      }
+    ],
+    "expressions": [
+      {
+        "name": "DataFolder",
+        "kind": "m",
+        "expression": "\"C:\\Olist\\data\\clean\\\" meta [IsParameterQuery=true, Type=\"Text\", IsParameterQueryRequired=true]"
+      }
+    ]
+  }
+}
